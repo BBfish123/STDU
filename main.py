@@ -8,6 +8,14 @@ from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import os
+import sys
+
+if getattr(sys, "frozen", False):
+    browser_path = Path(sys.executable).resolve().parent / "ms-playwright"
+    if browser_path.is_dir():
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browser_path)
+
 URL = "https://order-tyb.stdu.edu.cn/wxh5/book?type=1"
 
 # PyInstaller 发布版从 EXE 同目录加载随包携带的 Chromium；源码运行时使用 Playwright 默认缓存。
