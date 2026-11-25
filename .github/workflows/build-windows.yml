@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,11 +25,30 @@ jobs:
         run: python -m playwright install chromium
 
       - name: Build EXE
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name "STDU羽毛球智能预约助手" --collect-all playwright main.py
+        run: |
+          pyinstaller --noconfirm --clean --windowed --onedir --name "STDU羽毛球智能预约助手" --collect-all playwright main.py
+
+      - name: Bundle Chromium to Playwright expected path
+        shell: pwsh
+        run: |
+          $source = "$env:LOCALAPPDATA\ms-playwright"
+          $target = "dist/STDU羽毛球智能预约助手/_internal/playwright/driver/package/.local-browsers"
+
+          if (!(Test-Path $source)) {
+            throw "Chromium source directory not found"
+          }
+
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          Copy-Item "$source\*" $target -Recurse -Force
+
+          if (!(Test-Path "$target/chromium-1194/chrome-win/chrome.exe")) {
+            throw "Chromium executable was not bundled correctly"
+          }
 
       - name: Package
-        run: Compress-Archive -Path "dist/STDU羽毛球智能预约助手" -DestinationPath "STDU羽毛球预约助手-Windows-x64.zip"
         shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/STDU羽毛球智能预约助手" -DestinationPath "STDU羽毛球预约助手-Windows-x64.zip"
 
       - name: Upload
         uses: actions/upload-artifact@v4
