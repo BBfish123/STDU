@@ -1,39 +1,49 @@
 name: Build Windows EXE
+
 on:
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Install bundled Chromium
-        shell: pwsh
+
+      - name: Install Chromium
+        run: python -m playwright install chromium
+
+      - name: Build EXE
         run: |
-          $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\\browser-cache"
-          python -m playwright install chromium
-      - name: Build application
-        shell: pwsh
-        run: |
-          $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\\browser-cache"
           pyinstaller --noconfirm --clean --windowed --onedir --name "STDU羽毛球智能预约助手" --collect-all playwright main.py
-          Copy-Item -Recurse -Force browser-cache\\* "dist\\STDU羽毛球智能预约助手\\ms-playwright"
-          Copy-Item -Force 使用说明.txt "dist\\STDU羽毛球智能预约助手\\使用说明.txt"
-      - name: Package portable build
+
+      - name: Bundle Chromium
         shell: pwsh
         run: |
-          Compress-Archive -Path "dist\\STDU羽毛球智能预约助手" -DestinationPath "STDU羽毛球预约助手-Windows-x64.zip"
-      - name: Upload artifact
+          $browser = "$env:LOCALAPPDATA\ms-playwright"
+          if (!(Test-Path $browser)) {
+            throw "Chromium browser directory not found"
+          }
+          Copy-Item $browser "dist/STDU羽毛球智能预约助手/ms-playwright" -Recurse
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/STDU羽毛球智能预约助手" -DestinationPath "STDU羽毛球预约助手-Windows-x64.zip"
+
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: STDU羽毛球预约助手-Windows-x64
           path: STDU羽毛球预约助手-Windows-x64.zip
-          if-no-files-found: error
